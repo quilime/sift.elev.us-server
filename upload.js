@@ -25,6 +25,7 @@ app.post('/upload', function(req, res) {
       console.log(err);
     };
 
+
     const parseEXIF = (filePath) => new Promise(function(resolve, reject) {
       try {
         new ExifImage({ image : filePath }, function (error, exifData) {
