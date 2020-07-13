@@ -62,7 +62,7 @@ app.post('/upload', function(req, res) {
       // then manage filesystem
       .then(function(fileData){
         var iter = true;
-        var i = 1;
+        var i = 0;
 
         do {
           fileData.destDir = process.env.STATIC_DIR + i + '/';
@@ -70,7 +70,7 @@ app.post('/upload', function(req, res) {
             console.log('folder exists and is good');
             return fileData;
           } else {
-            console.log('iterating because folder is full');
+            console.log('iterating because folder does\'t exist or is full');
             i++;
             fileData.destDir = process.env.STATIC_DIR + i + '/';
             fs.mkdirSync(fileData.destDir, { recursive: true }, (err) => {
