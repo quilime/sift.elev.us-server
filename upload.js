@@ -60,7 +60,7 @@ app.post('/upload', function(req, res) {
 
       // then move static asset
       .then(function(fileData) {
-        let dest = './public/static/' + fileData.uniqueFilename;
+        let dest = process.env.STATIC_DIR + fileData.uniqueFilename;
         fs.copyFile(fileData.file.path, dest, (error) => {
           if (error) {
             throw error;
