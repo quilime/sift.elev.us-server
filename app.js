@@ -13,7 +13,7 @@ app.use(cors({
 require(__dirname + '/upload.js');
 
 app.get('/', function(req, res){
-   res.send("<pre>200 OK");
+   res.send("<pre>img.elev.us 200 OK");
 });
 
 app.listen(process.env.PORT, () => {
