@@ -4,7 +4,6 @@ const path = require('path');
 const shortid = require('shortid');
 const IncomingForm = require('formidable').IncomingForm
 const ExifImage = require('exif').ExifImage;
-const mkdirp = require('mkdirp');
 
 const allowableTypes = {
   'image/jpeg' : 'jpg',
