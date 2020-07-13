@@ -1,6 +1,7 @@
+const app = require('./app.js');
 const IncomingForm = require('formidable').IncomingForm
 
-module.exports = function upload(req, res) {
+app.post('/upload', function(req, res) {
   var form = new IncomingForm()
 
   form.on('file', (field, file) => {
@@ -14,4 +15,4 @@ module.exports = function upload(req, res) {
     res.json()
   })
   form.parse(req)
-}
+});

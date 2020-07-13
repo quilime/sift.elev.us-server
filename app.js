@@ -1,22 +1,21 @@
-const express = require('express')
-const upload = require('./upload')
-const cors = require('cors')
+const config = require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
 
-const server = express()
+if (config.error) throw config.error;
 
-var corsOptions = {
+const app = module.exports = express();
+app.use(cors({
   origin: '*',
   optionsSuccessStatus: 200,
-}
+}));
 
-server.use(cors(corsOptions))
+require(__dirname + '/upload.js');
 
-server.post('/upload', upload)
-
-server.get('/', function(req, res){
+app.get('/', function(req, res){
    res.send("<pre>200 OK");
-})
+});
 
-server.listen(8000, () => {
-  console.log('Server started!')
-})
+app.listen(process.env.PORT, () => {
+  console.log('Listening on port', process.env.PORT);
+});
