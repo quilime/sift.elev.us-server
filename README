@@ -1,0 +1,34 @@
+# README
+
+## Post Commit Hook
+```
+#!/usr/bin/env bash
+
+set -u
+set -e
+
+WORKING_TREE="/home/sift/img.elev.us"
+GIT_DIR="/home/sift/git/sift.elev.us-server"
+
+. $HOME/.nvm/nvm.sh
+
+while read oldrev newrev ref
+do
+    if [[ $ref =~ .*/master$ ]];
+    then
+
+        echo "Master ref received.  Deploying master branch to production..."
+
+        git --work-tree=$WORKING_TREE --git-dir=$GIT_DIR checkout -f
+        HASH=`git rev-parse --short HEAD`
+
+        cd $WORKING_TREE
+        sed -i '/GITHEAD=/d' .env
+        echo "GITHEAD="$HASH >> .env
+
+        npm install
+    else
+        echo "Ref $ref successfully received.  Doing nothing: only the master branch may be deployed on this server."
+    fi
+done
+```
