@@ -13,13 +13,12 @@ const allowableTypes = {
 }
 
 app.post('/upload', function(req, res) {
+  
   var form = new IncomingForm();
   form.parse(req);
-
   var fileData = {};
 
   form.on('file', (field, file) => {
-    
     fileData.file = file;
 
     const errHandler = function(err) {
@@ -37,13 +36,13 @@ app.post('/upload', function(req, res) {
     });
 
     // parse exif data
-    parseEXIF(file.path).then(function(exif) {
+    parseEXIF(fileData.file.path).then(function(exif) {
         fileData.exif = exif;
         return fileData;
       }, errHandler)
 
-      // then generate filename
-      .then(function(fileData){
+      // generate unique filename
+      .then(function(fileData) {
         if (allowableTypes.hasOwnProperty(fileData.file.type)) {
           fileData.uniqueFilename = 
             shortid.generate() + '_' + Date.now() + '.' + allowableTypes[fileData.file.type];
@@ -53,14 +52,8 @@ app.post('/upload', function(req, res) {
         }
       }, errHandler)
 
-      // then insert to DB
-      .then(function(fileData){
-        console.log('upload to database');
-        return fileData;
-      }, errHandler)
-
-      // then manage filesystem
-      .then(function(fileData){
+      // manage filesystem
+      .then(function(fileData) {
         var iter = true;
         var i = 0;
 
@@ -81,9 +74,14 @@ app.post('/upload', function(req, res) {
               if (err) throw err;
             });            
           }
-        }
-        while(iter);
+        } while(iter);
       })
+
+      // insert to DB
+      .then(function(fileData) {
+        console.log('Insert to database');
+        return fileData;
+      }, errHandler)      
 
       // then move static asset
       .then(function(fileData) {
@@ -93,14 +91,8 @@ app.post('/upload', function(req, res) {
             throw error;
           }
           console.log('File moved!');
-          return true;
+          res.json(fileData);
         });
       }, errHandler)
-
-  });
-  
-  form.on('end', () => {
-    console.log('form end');
-    res.json();
   });
 });
