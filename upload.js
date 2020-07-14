@@ -67,9 +67,10 @@ app.post('/upload', function(req, res) {
         do {
           fileData.destDir = process.env.STATIC_DIR + i + '/';
           if (fs.existsSync(fileData.destDir) && fs.readdirSync(fileData.destDir).length < process.env.MAX_FILES) {
-            console.log('folder exists and is good');
+            console.log('folder exists and has space');
             return fileData;
-          } else {
+          } 
+          else {
             console.log('iterating because folder does\'t exist or is full');
             i++;
             fileData.destDir = process.env.STATIC_DIR + i + '/';
