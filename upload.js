@@ -1,4 +1,3 @@
-const app = require('./app.js');
 const fs = require('fs');
 const path = require('path');
 const shortid = require('shortid');
@@ -12,87 +11,104 @@ const allowableTypes = {
   'image/gif' : 'gif',
 }
 
-app.post('/upload', function(req, res) {
-  
+const FILETYPE_ERROR_STR = 'Must be jpg, png, or gif';
+
+exports.post = (req, res) => {  
   var form = new IncomingForm();
+  
+  // parse form
   form.parse(req);
+
+  // object that will eventually be returned as JSON
   var fileData = {};
 
+  // parse EXIF data
+  const parseEXIF = (filePath) => new Promise(function(resolve, reject) {
+    try {
+      new ExifImage({ image : filePath }, function (error, exifData) {
+        resolve(exifData);
+      });
+    } catch (error) {
+      throw new Error(error);
+    }
+  });  
+
+  // check type
+  const checkType = (file) => new Promise(function(resolve, reject) {
+    if (allowableTypes.hasOwnProperty(file.type)) {
+      resolve();
+    } else {
+      res.json({...fileData, ...{ "error":  FILETYPE_ERROR_STR }});
+      throw new Error(FILETYPE_ERROR_STR);
+    }
+  });
+
+  // handle each file from form
   form.on('file', (field, file) => {
+    
     fileData.file = file;
 
-    const errHandler = function(err) {
-      console.log(err);
-    };
+    // check file type
+    checkType(fileData.file)
+    
+    // parse exif data
+    .then(parseEXIF(fileData.file.path))
+    .then(function(exifData) {
+      fileData.exif = exifData;
+      return fileData;
+    })
 
-    const parseEXIF = (filePath) => new Promise(function(resolve, reject) {
-      try {
-        new ExifImage({ image : filePath }, function (error, exifData) {
-          resolve(exifData);
-        });
-      } catch (error) {
-        reject(error);
-      }
+    // generate unique filename
+    .then(function(fileData) {
+      fileData.uniqueFilename = shortid.generate() + '_' + Date.now() + '.' + allowableTypes[fileData.file.type];
+      return fileData;
+    })
+
+    // manage filesystem
+    .then(function(fileData) {
+      let iter = true;
+      let i = 0;
+      do {
+
+        // static destination
+        fileData.destDir = process.env.STATIC_DIR + i + '/';
+
+        // check if folder exists and has enough space
+        if (fs.existsSync(fileData.destDir) && fs.readdirSync(fileData.destDir).length < process.env.MAX_FILES) {
+          console.log('Folder "'+fileData.destDir+'" exists and has space');
+          iter = false;
+          fileData.localPath = fileData.destDir + fileData.uniqueFilename;
+          fs.copyFileSync(fileData.file.path, fileData.localPath, (err) => { if (err) throw error; });
+          return fileData;
+        } 
+
+        // if not, create new destination folder
+        else {
+          console.log('Iterating because "' + fileData.destDir + '" does\'t exist, or is full.');
+          i++;
+          fileData.destDir = process.env.STATIC_DIR + i + '/';
+          fs.mkdirSync(fileData.destDir, { recursive: true }, (err) => { if (err) throw err; });
+        }
+      } while(iter);
+    })
+
+    // insert to DB
+    .then(function(fileData) {
+      console.log('Insert to database');
+      return fileData;
+    })
+
+    // return json
+    .then(function(fileData) {
+      console.log("return!");
+      res.json(fileData);
+    })
+
+    // catch all errors  
+    .catch(function(err) {
+      console.log('Upload Error');
+      console.log(err);
     });
 
-    // parse exif data
-    parseEXIF(fileData.file.path).then(function(exif) {
-        fileData.exif = exif;
-        return fileData;
-      }, errHandler)
-
-      // generate unique filename
-      .then(function(fileData) {
-        if (allowableTypes.hasOwnProperty(fileData.file.type)) {
-          fileData.uniqueFilename = 
-            shortid.generate() + '_' + Date.now() + '.' + allowableTypes[fileData.file.type];
-          return fileData;
-        } else {
-          throw new Error('Filetype "' + fileData.file.type + '" is not allowed.'); 
-        }
-      }, errHandler)
-
-      // manage filesystem
-      .then(function(fileData) {
-        var iter = true;
-        var i = 0;
-
-        do {
-          fileData.destDir = process.env.STATIC_DIR + i + '/';
-          if (fs.existsSync(fileData.destDir) && fs.readdirSync(fileData.destDir).length < process.env.MAX_FILES) {
-            console.log('folder exists and has space');
-            return fileData;
-          } 
-          else {
-            console.log('iterating because folder does\'t exist or is full');
-            i++;
-            fileData.destDir = process.env.STATIC_DIR + i + '/';
-            fs.mkdirSync(fileData.destDir, { recursive: true }, (err) => {
-              console.log('create new folder');
-              iter = false;
-              return fileData;
-              if (err) throw err;
-            });            
-          }
-        } while(iter);
-      })
-
-      // insert to DB
-      .then(function(fileData) {
-        console.log('Insert to database');
-        return fileData;
-      }, errHandler)      
-
-      // then move static asset
-      .then(function(fileData) {
-        fileData.localPath = fileData.destDir + fileData.uniqueFilename;
-        fs.copyFile(fileData.file.path, fileData.localPath, (error) => {
-          if (error) {
-            throw error;
-          }
-          console.log('File moved!');
-          res.json(fileData);
-        });
-      }, errHandler)
   });
-});
+};
