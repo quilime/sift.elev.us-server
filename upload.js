@@ -46,13 +46,13 @@ exports.post = (req, res) => {
   // handle each file from form
   form.on('file', (field, file) => {
     
-    fileData.file = file;
+    fileData = {...file};
 
     // check file type
-    checkType(fileData.file)
+    checkType(fileData)
     
     // parse exif data
-    .then(parseEXIF(fileData.file.path))
+    .then(parseEXIF(fileData.path))
     .then(function(exifData) {
       fileData.exif = exifData;
       return fileData;
@@ -60,7 +60,7 @@ exports.post = (req, res) => {
 
     // generate unique filename
     .then(function(fileData) {
-      fileData.uniqueFilename = shortid.generate() + '_' + Date.now() + '.' + allowableTypes[fileData.file.type];
+      fileData.uniqueFilename = shortid.generate() + '_' + Date.now() + '.' + allowableTypes[fileData.type];
       return fileData;
     })
 
@@ -75,10 +75,11 @@ exports.post = (req, res) => {
 
         // check if folder exists and has enough space
         if (fs.existsSync(fileData.destDir) && fs.readdirSync(fileData.destDir).length < process.env.MAX_FILES) {
-          console.log('Folder "'+fileData.destDir+'" exists and has space');
+          console.log('Folder "' + fileData.destDir + '" exists and has space');
           iter = false;
           fileData.localPath = fileData.destDir + fileData.uniqueFilename;
-          fs.copyFileSync(fileData.file.path, fileData.localPath, (err) => { if (err) throw error; });
+          fileData.href = "http://localhost:3000/static/" + i + "/" + fileData.uniqueFilename;
+          fs.copyFileSync(fileData.path, fileData.localPath, (err) => { if (err) throw error; });
           return fileData;
         } 
 
