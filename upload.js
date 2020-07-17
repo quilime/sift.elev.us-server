@@ -3,6 +3,9 @@ const path = require('path');
 const shortid = require('shortid');
 const IncomingForm = require('formidable').IncomingForm
 const ExifImage = require('exif').ExifImage;
+var sizeOf = require('image-size');
+const { Image } = require('./models');
+const { v4: uuidv4 } = require('uuid');
 
 const allowableTypes = {
   'image/jpeg' : 'jpg',
@@ -51,16 +54,17 @@ exports.post = (req, res) => {
     // check file type
     checkType(fileData)
     
-    // parse exif data
+    // parse image info
     .then(parseEXIF(fileData.path))
     .then(function(exifData) {
-      fileData.exif = exifData;
+      fileData.exif = exifData;  
+      fileData.dims = sizeOf(fileData.path);
       return fileData;
     })
 
     // generate unique filename
     .then(function(fileData) {
-      fileData.uniqueFilename = shortid.generate() + '_' + Date.now() + '.' + allowableTypes[fileData.type];
+      fileData.localName = shortid.generate() + '_' + Date.now() + '.' + allowableTypes[fileData.type];
       return fileData;
     })
 
@@ -71,36 +75,49 @@ exports.post = (req, res) => {
       do {
 
         // static destination
-        fileData.destDir = process.env.STATIC_DIR + i + '/';
+        fileData.localPath = process.env.STATIC_DIR + i;
 
         // check if folder exists and has enough space
-        if (fs.existsSync(fileData.destDir) && fs.readdirSync(fileData.destDir).length < process.env.MAX_FILES) {
-          // console.log('Folder "' + fileData.destDir + '" exists and has space');
+        if (fs.existsSync(fileData.localPath) && fs.readdirSync(fileData.localPath).length < process.env.MAX_FILES) {
+          console.log('Folder "' + fileData.localPath + '" exists and has space');
           iter = false;
-          fileData.localPath = fileData.destDir + fileData.uniqueFilename;
-          fileData.href = "http://localhost:3000/static/" + i + "/" + fileData.uniqueFilename;
-          fs.copyFileSync(fileData.path, fileData.localPath, (err) => { if (err) throw error; });
+          fileData.href = i;
+          fs.copyFileSync(fileData.path, fileData.localPath + '/' + fileData.localName, (err) => { if (err) throw error; });
           return fileData;
         } 
 
         // if not, create new destination folder
         else {
-          // console.log('Iterating because "' + fileData.destDir + '" does\'t exist, or is full.');
+          console.log('Iterating because "' + fileData.localPath + '" does\'t exist, or is full.');
           i++;
-          fileData.destDir = process.env.STATIC_DIR + i + '/';
-          fs.mkdirSync(fileData.destDir, { recursive: true }, (err) => { if (err) throw err; });
+          fs.mkdirSync(process.env.STATIC_DIR + i, { recursive: true }, (err) => { if (err) throw err; });
         }
       } while(iter);
     })
 
     // insert to DB
     .then(function(fileData) {
-      try {
-        console.log('Insert to database');
-        return fileData;
-      } catch (err) {
-        throw new Error(err);
-      }
+      const newImage = Image.build({
+        name: fileData.localName,
+        href: fileData.href,
+        type: fileData.type,
+        size: fileData.size,
+        width: fileData.dims.width,
+        height: fileData.dims.height,
+        fileInfo: fileData,
+        uuid: uuidv4(),
+        client_ip: req.header('x-forwarded-for') || req.connection.remoteAddress,
+        client_agent: req.header('user-agent')
+      });
+      return newImage.save()
+        .then((im) => {
+          console.log('Successfuly inserted into DB: ', im.toJSON());
+          return fileData;
+        })
+        .catch((err) => {
+          console.log('Error inserting into DB', err);
+          throw new Error(err);
+        });
     })
 
     // return json
