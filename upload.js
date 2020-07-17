@@ -75,7 +75,7 @@ exports.post = (req, res) => {
 
         // check if folder exists and has enough space
         if (fs.existsSync(fileData.destDir) && fs.readdirSync(fileData.destDir).length < process.env.MAX_FILES) {
-          console.log('Folder "' + fileData.destDir + '" exists and has space');
+          // console.log('Folder "' + fileData.destDir + '" exists and has space');
           iter = false;
           fileData.localPath = fileData.destDir + fileData.uniqueFilename;
           fileData.href = "http://localhost:3000/static/" + i + "/" + fileData.uniqueFilename;
@@ -85,7 +85,7 @@ exports.post = (req, res) => {
 
         // if not, create new destination folder
         else {
-          console.log('Iterating because "' + fileData.destDir + '" does\'t exist, or is full.');
+          // console.log('Iterating because "' + fileData.destDir + '" does\'t exist, or is full.');
           i++;
           fileData.destDir = process.env.STATIC_DIR + i + '/';
           fs.mkdirSync(fileData.destDir, { recursive: true }, (err) => { if (err) throw err; });
@@ -95,8 +95,12 @@ exports.post = (req, res) => {
 
     // insert to DB
     .then(function(fileData) {
-      console.log('Insert to database');
-      return fileData;
+      try {
+        console.log('Insert to database');
+        return fileData;
+      } catch (err) {
+        throw new Error(err);
+      }
     })
 
     // return json
