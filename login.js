@@ -22,55 +22,91 @@ const genLoginCode = () => {
 
 
 const gen = (req, res) => {
-  
-  let email = req.body.email;
 
-  db.User.findOne({ where : { email : email } })
+  db.User.findOne({ where : { email : req.body.email } })
 
-    // if there is no user with that email, then create it 
-    .then((res) => {
-      if (!res) {
-        return db.User.create({
-          email: req.body.email
-        })
-      }
-      else {
-        return res;
-      }
-    })
-    .then((user) => {
-      user.password = genLoginCode();
-      user.passwordCreatedAt = Date.now();
-      return user.save({ fields: ['password', 'passwordCreatedAt'] });
-    })
-    .then((user) => {
-      return emailTransport.sendMail({
-        from: process.env.FROM_EMAIL, 
-        to: user.email,
-        subject: "SIFT One-time Login Key 🗝",
-        text: "Your one-time login key\n\n" + user.password, // plain text body
-        html: "Your one-time login key 🗝<br /><br /><strong>" + user.password + "</strong>", // html body
+  // if there is no user with that email, then create it 
+  .then((res) => {
+    if (!res) {
+      return db.User.create({
+        email: req.body.email
       })
-      .then((status) => {
-        console.log(status);
-        return user;
-      })
+    }
+    else {
+      return res;
+    }
+  })
+
+  // generate login code and update the user row
+  .then((user) => {
+    user.password = genLoginCode();
+    user.passwordCreatedAt = Date.now();
+    return user.save({ fields: ['password', 'passwordCreatedAt'] });
+  })
+
+  // email the user the password
+  .then((user) => {
+    // if (1) return user;
+    return emailTransport.sendMail({
+      from: process.env.FROM_EMAIL, 
+      to: user.email,
+      subject: "SIFT One-time Login Key 🗝",
+      text: "Your one-time login key\n\n" + user.password, // plain text body
+      html: "Your one-time login key 🗝<br /><br /><strong>" + user.password + "</strong>", // html body
     })
-    .then((user) => {
-      console.log(`Sent email to ${user.email}`);
+    .then((status) => {
+      console.log(status);
+      return user;
     })
-    .catch((err) => {
-      console.log('New User Error', err);
-    })
+  })
+
+  // complete
+  .then((user) => {
+    console.log(user.toJSON());
+    console.log(`Sent email to ${user.email}`);
+    res.json({ email: user.email });
+  })
+
+  .catch((err) => {
+    console.log('New User Error', err);
+  })
 };
 
 const login = async (req, res) => {
-  try {
-    console.log("login");
-    res.json({ "log": "mein" });
-  } catch (err) {
-    res.send(err);
-  }
+  const email = req.body.email;
+  const password = req.body.password;
+
+  db.User.findOne({ where : { 
+    email: req.body.email,
+    password: req.body.password
+  } })
+
+  .then((user) => {
+    if (user) {
+      // user.password = "";
+      // return user.save();
+      return user;
+    } 
+    else {
+      throw new Error('Invalid Login');
+    }
+  })
+
+  .then((user) => { 
+    console.log(user.toJSON());
+    res.json({ 
+      loggedIn : true,
+      email: user.email 
+    });
+  })
+
+  .catch((err) => {
+    console.log(err);
+    res.json({ 
+      error : 'Invalid Login', 
+      email : email 
+    });
+  });
 };
 
 const check = async(req, res) => {
