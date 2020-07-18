@@ -16,7 +16,7 @@ const allowableTypes = {
 
 const FILETYPE_ERROR_STR = 'Must be jpg, png, or gif';
 
-exports.post = (req, res) => {  
+const post = (req, res) => {  
   var form = new IncomingForm();
   
   // parse form
@@ -134,3 +134,7 @@ exports.post = (req, res) => {
 
   });
 };
+
+module.exports = {
+  post: post
+}

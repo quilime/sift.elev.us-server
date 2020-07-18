@@ -5,26 +5,37 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const upload = require('./upload');
+const login = require('./login');
+const db = require('./models');
 
-// enable Cross-origin resource sharing
+// enable cross-origin resource sharing
 app.use(cors({
   origin: '*',
   optionsSuccessStatus: 200,
 }));
+app.use(express.json());
 
-// route middleware to ensure user is logged in
-function checkAuth(req, res, next) {
-    // if (1) { //req.isAuthenticated()
-      return next();
-    // }
-    // res.redirect("/login");
-}
+// middleware to ensure user is logged in
+const checkAuth = (req, res, next) => {
+  // if (req.isAuthenticated()) 
+  return next();
+  // else 
+  // res.redirect("/login");
+};
+
+const index = (req, res) => {
+  res.send('<pre>' + process.env.SERVER_NAME + ' 200 OK\nHEAD: ' + process.env.GITHEAD);
+};
+
 
 app.post('/upload', checkAuth, upload.post);
-app.get('/', (req, res) => {
-   res.send('<pre>' + process.env.SERVER_NAME+' 200 OK\nHEAD: ' + process.env.GITHEAD);
-});
+app.post('/login/check', login.check);
+app.post('/login/gen', login.gen);
+app.post('/login', login.login);
+app.get('/', index);
+
 
 app.listen(process.env.PORT, () => {
   console.log('Listening on port', process.env.PORT);
 });
+

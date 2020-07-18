@@ -6,8 +6,9 @@ const { Sequelize, DataTypes, Model } = require('sequelize');
 const connection_str = `mysql://${process.env.MYSQL_USER}:${process.env.MYSQL_PASS}@${process.env.MYSQL_HOSTNAME}:${process.env.MYSQL_PORT}/${process.env.MYSQL_DB}`;
 var sequelize = new Sequelize(connection_str);
 
+
 class Image extends Model {};
-module.exports.Image = Image.init({
+Image.init({
   name: {
     type: DataTypes.STRING,
     allowNull: false
@@ -40,12 +41,33 @@ module.exports.Image = Image.init({
     type: DataTypes.STRING(45)
   },
   client_agent: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
   }
 }, {
-  // Other model options go here
-  sequelize, // We need to pass the connection instance
-  modelName: 'Image' // We need to choose the model name
+  sequelize,
+  modelName: 'Image'
+});
+
+
+class User extends Model{};
+User.init({
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },  
+  username: {
+    type: DataTypes.STRING,
+  },
+  password: {
+    type: DataTypes.STRING
+  },
+  passwordCreatedAt: {
+    type: Sequelize.DATE
+  }
+}, {
+  sequelize,
+  modelName: 'User'
 });
 
 
@@ -53,21 +75,14 @@ sequelize.authenticate()
   .then(() => {
     console.log('Connection has been established successfully.');
   })
-  .then(Image.sync({ alter: true }))
+  // .then(Image.sync({ alter: true }))
+  // .then(User.sync({ alter: true }))
   .catch((err)=>{
     console.error('Unable to connect to the database:', err);
   });
 
-// (async() => {
-//   try {
-//     await sequelize.authenticate();
-//     console.log('Connection has been established successfully.');
-//   } catch (error) {
-//     console.error('Unable to connect to the database:', error);
-//   }
-// });
+module.exports = {
+  User: User,
+  Image: Image
+}
 
-// (async() => {
-//   await Image.sync({ alter: true });
-//   console.log("The table for the Image model was just (re)created!");
-// })();
