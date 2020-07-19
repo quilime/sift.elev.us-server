@@ -2,7 +2,7 @@ const db = require('./models');
 const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 
-// TODO: move to env
+
 const emailTransport = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: process.env.SMTP_PORT,
@@ -18,7 +18,6 @@ const emailTransport = nodemailer.createTransport({
 const genLoginCode = () => {
   return Math.floor(100000 + Math.random() * 900000);
 }
-
 
 
 const gen = (req, res) => {
@@ -46,13 +45,13 @@ const gen = (req, res) => {
 
   // email the user the password
   .then((user) => {
-    // if (1) return user;
+    if (1) return user; // temp bypass email for now
     return emailTransport.sendMail({
       from: process.env.FROM_EMAIL, 
       to: user.email,
-      subject: "SIFT One-time Login Key 🗝",
-      text: "Your one-time login key\n\n" + user.password, // plain text body
-      html: "Your one-time login key 🗝<br /><br /><strong>" + user.password + "</strong>", // html body
+      subject: "SIFT One-time Login Key 🔑",
+      text: "Your one-time login code\n\n" + user.password, // plain text body
+      html: "Your one-time login code 🔑<br /><br /><strong>" + user.password + "</strong>", // html body
     })
     .then((status) => {
       console.log(status);
@@ -72,6 +71,7 @@ const gen = (req, res) => {
   })
 };
 
+
 const login = async (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
@@ -83,6 +83,7 @@ const login = async (req, res) => {
 
   .then((user) => {
     if (user) {
+      // TODO: temp don't reset password
       // user.password = "";
       // return user.save();
       return user;
@@ -94,9 +95,9 @@ const login = async (req, res) => {
 
   .then((user) => { 
     console.log(user.toJSON());
-    res.json({ 
-      loggedIn : true,
-      email: user.email 
+    res.json({
+      email: user.email,
+      username: user.username
     });
   })
 
@@ -109,12 +110,20 @@ const login = async (req, res) => {
   });
 };
 
-const check = async(req, res) => {
-  res.json({ status: "not logged in" });
+
+const check = (req, res) => {
+  res.json({ loggedIn: true });
 };
+
+
+const logout = (req, res) => {
+  res.json({ loggedIn: false });
+};
+
 
 module.exports = {
   gen: gen,
   login: login,
+  logout: logout,
   check: check
 }

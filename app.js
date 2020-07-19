@@ -29,8 +29,9 @@ const index = (req, res) => {
 
 
 app.post('/upload', checkAuth, upload.post);
-app.post('/login/check', login.check);
+app.get('/login/check', login.check);
 app.post('/login/gen', login.gen);
+app.post('/logout', login.logout);
 app.post('/login', login.login);
 app.get('/', index);
 
