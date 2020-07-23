@@ -73,25 +73,16 @@ passport.use(new passportJwt.Strategy(jwtOpts, (jwt_payload, next) => {
 }));
 
 
-// // auth middleware
-// const checkAuth = passport.authenticate("jwt", {
-//   session: false,
-//   failureRedirect: process.env.PROXY_URL + "/noauth"
-// });
-
 // auth middleware
 const checkAuth = (req, res, next) => passport.authenticate("jwt", function(err, user, info) {
   if (err) return next(err);
   if (!user || user.password) return res.redirect(process.env.PROXY_URL + "/noauth");
-  req.user = { 
-    email: user.email,
-    uuid: user.uuid
-  };
+  req.user = user;
   next(null, req);
 })(req, res, next);
 
 
-
+// set up app
 const app = express();
 app.use(cors({ 
   origin: '*', 
