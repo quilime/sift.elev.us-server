@@ -249,12 +249,6 @@ app.get(process.env.PROXY_URL + "/settings", checkAuth, (req, res) => {
 });
 
 
-// start app
-app.listen(process.env.PORT, () => {
-  console.log("Listening on port " + process.env.PORT);
-});
-
-
 // upload
 app.post(process.env.PROXY_URL + "/upload", checkAuth, upload.post);
 
@@ -270,26 +264,8 @@ app.get(process.env.PROXY_URL + "/images", checkAuth, (req, res) => {
   Image.findAll().then(images => res.json(images));
 });
 
-/*
-app.get('/login/check', login.check);
-app.post('/login/gen', login.gen);
-app.post('/logout', login.logout);
-app.post('/login', 
-  passport.authenticate('local-login', { 
-    failureRedirect: '/login/check' 
-  }), 
-  login.login);
-app.get('/', (req, res) => {
-  res.send('<pre>' + process.env.SERVER_NAME + ' 200 OK\nHEAD: ' + process.env.GITHEAD);
-});
-app.get('/settings', 
-  checkAuth,//require('connect-ensure-login').ensureLoggedIn(), 
-  (req, res) => {
-    res.json({ user : req.user });
-  });
 
-
+// start app
 app.listen(process.env.PORT, () => {
-  console.log('Listening on port', process.env.PORT);
+  console.log("Listening on port " + process.env.PORT);
 });
-*/
