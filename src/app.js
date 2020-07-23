@@ -101,21 +101,25 @@ app.get(process.env.PROXY_URL + "/", function(req, res) {
 
 // register
 app.post(process.env.PROXY_URL + "/register", (req, res) => {
-
-  console.log('Cookies: ', req.cookies);
-
+  
   const { email } = req.body;
+
   try {
     if (email) {
       const password = generatePassword();
+      // const where = process.env.INVITE_ONLY ? { email: email, invite: invite } : { email: email };
 
       User.findOne({ where: { email: email }})
         .then((user) => {
-          // create a new user if doesn't exist
+          // user exists
           if (user) {
             return user.update({ password: password });
           }
+          // user doesn't exist
           else {
+            if (process.env.INVITE_ONLY) {
+              throw "Registration is by invitation only";
+            }
             return User.create({ email: email, password: password, uuid: uuidv4() });
           }
         })
@@ -140,8 +144,12 @@ app.post(process.env.PROXY_URL + "/register", (req, res) => {
         .then(user => sendPasswordViaEmail(user))
         .then((emailSendResult) => {
           console.log(emailSendResult);
-          res.json({ msg: "One-time password " + password + " emailed to " + email });
+          res.json({ email: email, password: password, msg: "Password emailed to " + email });
+        })
+        .catch((err) => {
+          res.json({error: err});
         });
+
       }
       else {
         throw "Invalid Email";
