@@ -37,9 +37,12 @@ const generatePassword = () => {
 
 
 // mail transport
-const sendPasswordViaEmail = (user) => {
-  if (process.env.SEND_EMAIL == 0) return "Email-send disabled.";
-  return mailTransport.sendMail({
+const sendPasswordViaEmail = async (user) => {
+  if (process.env.SEND_EMAIL == 0) {
+    user.emailSendResult = "Email-send disabled.";
+    return user;
+  }
+  user.mailResponse = await mailTransport.sendMail({
     from: process.env.FROM_EMAIL,
     to: user.email,
     subject: "Your Login Code 🔑",
@@ -48,6 +51,7 @@ const sendPasswordViaEmail = (user) => {
     // html email body
     html: "Your single-use login code<br /><br /><strong style='font-size:2em;'>" + user.password + "</strong>",
   });
+  return user;
 };
 
 
@@ -124,6 +128,9 @@ app.post(process.env.PROXY_URL + "/register", (req, res) => {
           }
         })
         .then((user) => {
+          
+          // convert user to json object to clear out sequelize information
+          user = user.toJSON();
 
           // create JWT with user's uuid and the generated password
           let payload = {
@@ -133,18 +140,18 @@ app.post(process.env.PROXY_URL + "/register", (req, res) => {
           let token = jwt.sign(payload, jwtOpts.secretOrKey);
 
           console.log('jtw token created', token, 'payload', payload);
-
-          // store token in cookie
+          // store token in client cookie. if possible
           res.cookie("token", token, { httpOnly: true });
-
           console.log('cookie created server side', token);
+
+          user.token = token;
 
           return user;
         })
         .then(user => sendPasswordViaEmail(user))
-        .then((emailSendResult) => {
-          console.log(emailSendResult);
-          res.json({ email: email, password: password, msg: "Password emailed to " + email });
+        .then((user) => {
+          console.log('user.emailSendResult', user.emailSendResult);
+          res.json({ token:user.token, email: email, password: password, msg: "Password emailed to " + email });
         })
         .catch((err) => {
           res.json({error: err});
@@ -202,7 +209,7 @@ app.post(process.env.PROXY_URL + "/login", (req, res) => {
 
           // replace token in client cookie
           res.cookie("token", newToken, { httpOnly: true });
-          res.json({ user: user, message: "Login successful!" });
+          res.json({ user: user, token: newToken, message: "Login successful!" });
         })
         .catch(err => {
           res.status(401).json({ error: err });
