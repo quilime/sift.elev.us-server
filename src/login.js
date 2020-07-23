@@ -73,13 +73,16 @@ const gen = (req, res) => {
 
 
 const login = async (req, res) => {
-  const email = req.body.email;
+
+  const email = req.body.username;
   const password = req.body.password;
 
+  console.log('---- login');
+
   db.User.findOne({ where : { 
-    email: req.body.email,
-    password: req.body.password
-  } })
+    email: email,
+    password: password
+  }})
 
   .then((user) => {
     if (user) {
@@ -94,10 +97,11 @@ const login = async (req, res) => {
   })
 
   .then((user) => { 
-    console.log(user.toJSON());
+    // console.log(user.toJSON());
     res.json({
       email: user.email,
-      username: user.username
+      username: user.username,
+      settings: { user : "settings go here" }
     });
   })
 
@@ -112,7 +116,7 @@ const login = async (req, res) => {
 
 
 const check = (req, res) => {
-  res.json({ loggedIn: true });
+  res.json({ check : "logged in", loggedIn : true });
 };
 
 
