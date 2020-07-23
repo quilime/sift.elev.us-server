@@ -21,6 +21,10 @@ const Image = sequelize.define("Image", {
     allowNull: false,
     unique: true,
   },
+  uploader: {
+    type: DataTypes.UUID,
+    allowNull: false,
+  },  
   href: {
     type: DataTypes.STRING,
     allowNull: false

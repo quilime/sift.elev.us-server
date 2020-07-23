@@ -13,7 +13,7 @@ const { v4: uuidv4 } = require("uuid");
 
 const upload = require('./upload');
 const login = require('./login');
-const { User } = require('./models');
+const { User, Image } = require('./models');
 
 const morgan = require('morgan')('combined');
 
@@ -96,12 +96,6 @@ app.use(cookieParser());
 app.use(morgan);
 app.get(process.env.PROXY_URL + "/", function(req, res) {
   res.json({ server: process.env.SERVER_NAME, status: '200', build: process.env.BUILD });
-});
-
-
-// get all users
-app.get(process.env.PROXY_URL + "/users", (req, res) => {
-  User.findAll().then(users => res.json(users));
 });
 
 
@@ -253,9 +247,22 @@ app.listen(process.env.PORT, () => {
 });
 
 
+// upload
+app.post(process.env.PROXY_URL + "/upload", checkAuth, upload.post);
+
+
+// get all users
+app.get(process.env.PROXY_URL + "/users", checkAuth, (req, res) => {
+  User.findAll().then(users => res.json(users));
+});
+
+
+// get all images
+app.get(process.env.PROXY_URL + "/images", checkAuth, (req, res) => {
+  Image.findAll().then(images => res.json(images));
+});
 
 /*
-app.post('/upload', checkAuth, upload.post);
 app.get('/login/check', login.check);
 app.post('/login/gen', login.gen);
 app.post('/logout', login.logout);

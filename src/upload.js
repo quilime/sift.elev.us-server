@@ -18,6 +18,7 @@ const FILETYPE_ERROR_STR = 'Must be jpg, png, or gif';
 
 const post = (req, res) => {  
   var form = new IncomingForm();
+  let user = req.user;
   
   // parse form
   form.parse(req);
@@ -106,6 +107,7 @@ const post = (req, res) => {
         height: fileData.dims.height,
         fileInfo: fileData,
         uuid: uuidv4(),
+        uploader: user.uuid,
         client_ip: req.header('x-forwarded-for') || req.connection.remoteAddress,
         client_agent: req.header('user-agent')
       });
