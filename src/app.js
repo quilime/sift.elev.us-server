@@ -38,7 +38,7 @@ const generatePassword = () => {
 
 // mail transport
 const sendPasswordViaEmail = (user) => {
-  if (!process.env.SEND_EMAIL) return "Email-send disabled.";
+  if (process.env.SEND_EMAIL == 0) return "Email-send disabled.";
   return mailTransport.sendMail({
     from: process.env.FROM_EMAIL,
     to: user.email,
@@ -83,7 +83,10 @@ passport.use(new passportJwt.Strategy(jwtOpts, (jwt_payload, next) => {
 const checkAuth = (req, res, next) => passport.authenticate("jwt", function(err, user, info) {
   if (err) return next(err);
   if (!user || user.password) return res.redirect(process.env.PROXY_URL + "/noauth");
-  req.user = user.toJSON();
+  req.user = { 
+    email: user.email,
+    uuid: user.uuid
+  };
   next(null, req);
 })(req, res, next);
 
