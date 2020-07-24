@@ -89,7 +89,7 @@ const checkAuth = (req, res, next) => passport.authenticate("jwt", function(err,
 // set up app
 const app = express();
 app.use(cors({ 
-  origin: '*', 
+  origin: 'https://sift.elev.us', 
   optionsSuccessStatus: 200, 
   credentials: true
 }));
