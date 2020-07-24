@@ -62,9 +62,6 @@ const User = sequelize.define("User", {
   password: {
     type: DataTypes.STRING,
   },
-  invite: {
-    type: DataTypes.STRING,
-  },  
   uuid: {
     type: DataTypes.UUID,
     allowNull: false,

@@ -97,7 +97,7 @@ app.use(passport.initialize());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));  // parse application/x-www-form-urlencoded
 app.use(cookieParser());
-app.use(morgan);
+// app.use(morgan);
 
 const root = (req, res) => res.json({ server: process.env.SERVER_NAME, status: '200', build: process.env.BUILD });
 app.get("/", root);
@@ -267,6 +267,18 @@ app.get(process.env.PROXY_URL + "/users", checkAuth, (req, res) => {
 // get all images
 app.get(process.env.PROXY_URL + "/images", checkAuth, (req, res) => {
   Image.findAll().then(images => res.json(images));
+});
+
+
+// get an image
+app.get(process.env.PROXY_URL + "/images/:uuid", checkAuth, (req, res) => {
+  Image.findOne({ where: { uuid: req.params.uuid }}).then(image => res.json(image));
+});
+
+
+// get an image by uploader
+app.get(process.env.PROXY_URL + "/images/uploadedby/:uuid", checkAuth, (req, res) => {
+  Image.findAll({ where: { uploader: req.params.uuid }}).then(images => res.json(images));
 });
 
 
