@@ -121,7 +121,7 @@ app.post(process.env.PROXY_URL + "/register", (req, res) => {
           }
           // user doesn't exist
           else {
-            if (process.env.INVITE_ONLY) {
+            if (process.env.INVITE_ONLY == '1') {
               throw "Registration is by invitation only";
             }
             return User.create({ email: email, password: password, uuid: uuidv4() });
