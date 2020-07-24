@@ -98,10 +98,10 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));  // parse application/x-www-form-urlencoded
 app.use(cookieParser());
 app.use(morgan);
-app.get(process.env.PROXY_URL + "/", function(req, res) {
-  res.json({ server: process.env.SERVER_NAME, status: '200', build: process.env.BUILD });
-});
 
+const root = (req, res) => res.json({ server: process.env.SERVER_NAME, status: '200', build: process.env.BUILD });
+app.get("/", root);
+app.get(process.env.PROXY_URL + "/", root);
 
 // register
 app.post(process.env.PROXY_URL + "/register", (req, res) => {
