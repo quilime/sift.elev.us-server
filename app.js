@@ -39,7 +39,7 @@ const generatePassword = () => {
 // mail transport
 const sendPasswordViaEmail = async (user) => {
   if (process.env.SEND_EMAIL == 0) {
-    user.emailSendResult = "Email-send disabled.";
+    user.mailResponse = "Email-send disabled.";
     return user;
   }
   user.mailResponse = await mailTransport.sendMail({
@@ -150,7 +150,7 @@ app.post(process.env.PROXY_URL + "/register", (req, res) => {
         })
         .then(user => sendPasswordViaEmail(user))
         .then((user) => {
-          console.log('user.emailSendResult', user.emailSendResult);
+          console.log('user.mailResponse', user.mailResponse);
           res.json({ token:user.token, email: email, password: password, msg: "Password emailed to " + email });
         })
         .catch((err) => {
