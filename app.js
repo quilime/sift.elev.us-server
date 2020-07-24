@@ -12,7 +12,6 @@ const { createTransport } = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 
 const upload = require('./upload');
-const login = require('./login');
 const { User, Image } = require('./models');
 
 const morgan = require('morgan')('combined');
