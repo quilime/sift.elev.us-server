@@ -179,8 +179,6 @@ app.post(process.env.PROXY_URL + "/login", (req, res) => {
       throw "No token found in cookie -- Are cookies enabled?"
     }
 
-    console.log(req.cookies);
-
     var decodedToken = jwt.verify(token, process.env.JWT_SECRET);
     const { password } = req.body;
 
