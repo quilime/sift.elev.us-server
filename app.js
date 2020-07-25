@@ -137,7 +137,7 @@ app.post(process.env.PROXY_URL + "/register", async (req, res) => {
       let token = jwt.sign(payload, jwtOpts.secretOrKey);
 
       console.log('jtw token created', token, 'payload', payload);
-      res.cookie("token", token, { maxAge: process.env.COOKIE_MAX_AGE, httpOnly: true });
+      res.cookie("token", token, { maxAge: Number(process.env.COOKIE_MAX_AGE), httpOnly: true });
       console.log('cookie created server side', token);
 
       user.token = token;
@@ -200,7 +200,7 @@ app.post(process.env.PROXY_URL + "/login", async (req, res) => {
       let newToken = jwt.sign(payload, jwtOpts.secretOrKey);
 
       // replace token in client cookie
-      res.cookie("token", newToken, { maxAge: process.env.COOKIE_MAX_AGE, httpOnly: true });
+      res.cookie("token", newToken, { maxAge: Number(process.env.COOKIE_MAX_AGE), httpOnly: true });
       res.json({
         user: user,
         token: newToken,
