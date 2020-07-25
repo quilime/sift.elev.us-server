@@ -269,7 +269,7 @@ app.get(process.env.PROXY_URL + "/users", checkAuth, (req, res) => {
 app.get(process.env.PROXY_URL + "/images", checkAuth, async (req, res) => {
   try {
     let images = await DB.query("SELECT Images.*, Users.username FROM `Images`, `Users` where Images.uploader = Users.uuid;");
-    res.json(images[0]);
+    res.json(images[0].reverse());
   } catch(err) {
     res.json(err);
   }
@@ -299,7 +299,7 @@ app.get(process.env.PROXY_URL + "/images/uploadedby/:username", checkAuth, async
   try {
     let user = await User.findOne({ where: { username: req.params.username }});
     let images = await DB.query("SELECT Images.*, Users.username FROM `Images`, `Users` where Images.uploader = Users.uuid AND Images.uploader = '"+user.uuid+"';");
-    res.json(images[0]);
+    res.json(images[0].reverse());
   } catch(err) {
     res.json(err);
   }
