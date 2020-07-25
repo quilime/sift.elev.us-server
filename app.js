@@ -36,12 +36,8 @@ const generatePassword = () => {
 
 
 // mail transport
-const sendPasswordViaEmail = async (user) => {
-  if (process.env.SEND_EMAIL == 0) {
-    user.mailResponse = "Email-send disabled.";
-    return user;
-  }
-  user.mailResponse = await mailTransport.sendMail({
+const sendPasswordViaEmail = (user) => {
+  return mailTransport.sendMail({
     from: process.env.FROM_EMAIL,
     to: user.email,
     subject: "Your Login Code 🔑",
@@ -50,7 +46,6 @@ const sendPasswordViaEmail = async (user) => {
     // html email body
     html: "Your single-use login code<br /><br /><strong style='font-size:2em;'>" + user.password + "</strong>",
   });
-  return user;
 };
 
 
@@ -60,7 +55,7 @@ const jwtOpts = {
     let token = null;
     // get JWT from cookie
     if (req && req.cookies) token = req.cookies["token"];
-    return token;  
+    return token;
   },
   secretOrKey: process.env.JWT_SECRET
 };
@@ -79,7 +74,8 @@ passport.use(new passportJwt.Strategy(jwtOpts, (jwt_payload, next) => {
 // auth middleware
 const checkAuth = (req, res, next) => passport.authenticate("jwt", function(err, user, info) {
   if (err) return next(err);
-  if (!user || user.password) return res.redirect(process.env.PROXY_URL + "/noauth");
+  if (!user || user.password)
+    return res.redirect(process.env.PROXY_URL + "/noauth");
   req.user = user;
   next(null, req);
 })(req, res, next);
@@ -87,9 +83,9 @@ const checkAuth = (req, res, next) => passport.authenticate("jwt", function(err,
 
 // set up app
 const app = express();
-app.use(cors({ 
-  origin: 'https://sift.elev.us', 
-  optionsSuccessStatus: 200, 
+app.use(cors({
+  origin: 'https://sift.elev.us',
+  optionsSuccessStatus: 200,
   credentials: true
 }));
 app.use(passport.initialize());
@@ -103,63 +99,60 @@ app.get("/", root);
 app.get(process.env.PROXY_URL + "/", root);
 
 // register
-app.post(process.env.PROXY_URL + "/register", (req, res) => {
-  
+app.post(process.env.PROXY_URL + "/register", async (req, res) => {
+
   const { email } = req.body;
 
   try {
     if (email) {
+
       const password = generatePassword();
-      // const where = process.env.INVITE_ONLY ? { email: email, invite: invite } : { email: email };
 
-      User.findOne({ where: { email: email }})
-        .then((user) => {
-          // user exists
-          if (user) {
-            return user.update({ password: password });
-          }
-          // user doesn't exist
-          else {
-            if (process.env.INVITE_ONLY == '1') {
-              throw "Registration is by invitation only";
-            }
-            return User.create({ email: email, password: password, uuid: uuidv4() });
-          }
-        })
-        .then((user) => {
-          
-          // convert user to json object to clear out sequelize information
-          user = user.toJSON();
+      let user = await User.findOne({ where: { email: email }});
 
-          // create JWT with user's uuid and the generated password
-          let payload = {
-            uuid: user.uuid,
-            password: password
-          };
-          let token = jwt.sign(payload, jwtOpts.secretOrKey);
-
-          console.log('jtw token created', token, 'payload', payload);
-          // store token in client cookie. if possible
-          res.cookie("token", token, { httpOnly: true });
-          console.log('cookie created server side', token);
-
-          user.token = token;
-
-          return user;
-        })
-        .then(user => sendPasswordViaEmail(user))
-        .then((user) => {
-          console.log('user.mailResponse', user.mailResponse);
-          res.json({ token:user.token, email: email, password: password, msg: "Password emailed to " + email });
-        })
-        .catch((err) => {
-          res.json({error: err});
-        });
-
+      // user exists, so update row with new password
+      if (user) {
+        user = await user.update({ password: password });
       }
       else {
-        throw "Invalid Email";
+        if (process.env.INVITE_ONLY == '1') {
+          throw "Registration is by invitation only";
+        }
+        user = await User.create({ email: email, password: password, uuid: uuidv4() });
       }
+
+      // we're done with sequelize so reduce user to basic keys
+      user = user.toJSON();
+
+      // create JWT with user's uuid and the generated password
+      let payload = {
+        uuid: user.uuid,
+        password: password
+      };
+      let token = jwt.sign(payload, jwtOpts.secretOrKey);
+
+      console.log('jtw token created', token, 'payload', payload);
+      res.cookie("token", token, { maxAge: process.env.COOKIE_MAX_AGE, httpOnly: true });
+      console.log('cookie created server side', token);
+
+      user.token = token;
+
+      if (process.env.SEND_EMAIL == 0) {
+        console.log("Email-send disabled.");
+      } else {
+        let mailResponse = await sendPasswordViaEmail(user);
+        console.log('mailResponse', mailResponse);
+      }
+
+      res.json({
+        email: email,
+        password: password,
+        msg: "Password emailed to " + email
+      });
+
+    } else {
+      throw "Invalid Email";
+    }
   } catch (err) {
     console.error(err);
     res.json({ error : err });
@@ -168,8 +161,7 @@ app.post(process.env.PROXY_URL + "/register", (req, res) => {
 
 
 // login
-app.post(process.env.PROXY_URL + "/login", (req, res) => {
-
+app.post(process.env.PROXY_URL + "/login", async (req, res) => {
   try {
     // decode token from cookie
     const token = req.cookies["token"];
@@ -184,33 +176,31 @@ app.post(process.env.PROXY_URL + "/login", (req, res) => {
     console.log('cookies', req.cookies, 'decodedToken', decodedToken);
 
     if (password && decodedToken.uuid) {
-      User.findOne({where: { uuid: decodedToken.uuid }})
-        .then((user) => {
-          if (!user) {
-            throw "User not found";
-          }
-          if (user.password === password) {
-          // delete password after it's been used
-            return user.update({ password: null });
-          } else {
-            throw "Incorrect password";
-          }
-        })
-        .then((user) => {
-        // create new token with just user uuid
 
-          let payload = {
-            uuid: user.uuid
-          };
-          let newToken = jwt.sign(payload, jwtOpts.secretOrKey);
+      let user = await User.findOne({where: { uuid: decodedToken.uuid }});
 
-          // replace token in client cookie
-          res.cookie("token", newToken, { httpOnly: true });
-          res.json({ user: user, token: newToken, message: "Login successful!" });
-        })
-        .catch(err => {
-          res.status(401).json({ error: err });
-        });
+      if (!user) {
+        throw "User not found";
+      }
+      if (user.password === password) {
+        // delete password
+        user = await user.update({ password: null });
+      } else {
+        throw "Incorrect password";
+      }
+
+      let payload = {
+        uuid: user.uuid
+      };
+      let newToken = jwt.sign(payload, jwtOpts.secretOrKey);
+
+      // replace token in client cookie
+      res.cookie("token", newToken, { maxAge: process.env.COOKIE_MAX_AGE, httpOnly: true });
+      res.json({
+        user: user,
+        token: newToken,
+        message: "Login successful!"
+      });
     }
     else {
       throw "Go to /register to generate a new password.";
