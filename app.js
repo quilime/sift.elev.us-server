@@ -261,7 +261,7 @@ app.post(process.env.PROXY_URL + "/upload", checkAuth, upload.post);
 
 // get all users
 app.get(process.env.PROXY_URL + "/users", checkAuth, (req, res) => {
-  User.findAll().then(users => res.json(users));
+  User.findAll().then(users => res.json(users.reverse()));
 });
 
 
@@ -290,7 +290,6 @@ app.get(process.env.PROXY_URL + "/images/:uuid", checkAuth, async (req, res) => 
   } catch(err) {
     res.json(err);
   }
-
 });
 
 
