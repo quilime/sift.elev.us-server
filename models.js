@@ -24,14 +24,14 @@ const Image = sequelize.define("Image", {
   uploader: {
     type: DataTypes.UUID,
     allowNull: false,
-  },  
+  },
   href: {
     type: DataTypes.STRING,
     allowNull: false
   },
   type: {
     type: DataTypes.STRING
-  },  
+  },
   size: {
     type: DataTypes.INTEGER
   },
@@ -40,7 +40,7 @@ const Image = sequelize.define("Image", {
   },
   height: {
     type: DataTypes.INTEGER
-  },  
+  },
   fileInfo: {
     type: DataTypes.JSON
   },
@@ -62,6 +62,10 @@ const User = sequelize.define("User", {
   password: {
     type: DataTypes.STRING,
   },
+  username: {
+    type: DataTypes.STRING,
+    unique: true
+  },
   uuid: {
     type: DataTypes.UUID,
     allowNull: false,
@@ -78,6 +82,7 @@ sequelize.authenticate()
 
 
 module.exports = {
+  DB: sequelize,
   User: User,
   Image: Image
 }

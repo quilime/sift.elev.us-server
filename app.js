@@ -12,7 +12,7 @@ const { createTransport } = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 
 const upload = require('./upload');
-const { User, Image } = require('./models');
+const { DB, User, Image } = require('./models');
 
 const morgan = require('morgan')('combined');
 
@@ -118,7 +118,12 @@ app.post(process.env.PROXY_URL + "/register", async (req, res) => {
         if (process.env.INVITE_ONLY == '1') {
           throw "Registration is by invitation only";
         }
-        user = await User.create({ email: email, password: password, uuid: uuidv4() });
+        user = await User.create({
+          email: email,
+          password: password,
+          username: email.split("@")[0],
+          uuid: uuidv4()
+        });
       }
 
       // we're done with sequelize so reduce user to basic keys
@@ -237,9 +242,16 @@ app.get(process.env.PROXY_URL + "/protected", checkAuth, (req, res) => {
 });
 
 
-// user settings
+// get user settings
 app.get(process.env.PROXY_URL + "/settings", checkAuth, (req, res) => {
   res.json({ user: req.user });
+});
+
+
+// set user settings
+app.post(process.env.PROXY_URL + "/settings", checkAuth, async (req, res) => {
+  let user = await req.user.update({ username: req.body.username });
+  res.json({ user: user.toJSON() });
 });
 
 
@@ -254,20 +266,43 @@ app.get(process.env.PROXY_URL + "/users", checkAuth, (req, res) => {
 
 
 // get all images
-app.get(process.env.PROXY_URL + "/images", checkAuth, (req, res) => {
-  Image.findAll().then(images => res.json(images));
+app.get(process.env.PROXY_URL + "/images", checkAuth, async (req, res) => {
+  try {
+    let images = await DB.query("SELECT Images.*, Users.username FROM `Images`, `Users` where Images.uploader = Users.uuid;");
+    res.json(images[0]);
+  } catch(err) {
+    res.json(err);
+  }
 });
 
 
 // get an image
-app.get(process.env.PROXY_URL + "/images/:uuid", checkAuth, (req, res) => {
-  Image.findOne({ where: { uuid: req.params.uuid }}).then(image => res.json(image));
+app.get(process.env.PROXY_URL + "/images/:uuid", checkAuth, async (req, res) => {
+  try {
+    const uuid = req.params.uuid;
+    // Image.findOne({ where: { uuid: req.params.uuid }}).then(image => res.json(image));
+    let images = await DB.query("SELECT Images.*, Users.username FROM `Images`, `Users` where Images.uuid='" + uuid + "' AND Images.uploader = Users.uuid LIMIT 1;");
+    if (images[0][0]) {
+      res.json(images[0][0]);
+    } else {
+      throw "Image not found";
+    }
+  } catch(err) {
+    res.json(err);
+  }
+
 });
 
 
-// get an image by uploader
-app.get(process.env.PROXY_URL + "/images/uploadedby/:uuid", checkAuth, (req, res) => {
-  Image.findAll({ where: { uploader: req.params.uuid }}).then(images => res.json(images));
+// get images by uploader
+app.get(process.env.PROXY_URL + "/images/uploadedby/:username", checkAuth, async (req, res) => {
+  try {
+    let user = await User.findOne({ where: { username: req.params.username }});
+    let images = await DB.query("SELECT Images.*, Users.username FROM `Images`, `Users` where Images.uploader = Users.uuid AND Images.uploader = '"+user.uuid+"';");
+    res.json(images[0]);
+  } catch(err) {
+    res.json(err);
+  }
 });
 
 
