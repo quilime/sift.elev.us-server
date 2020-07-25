@@ -243,12 +243,17 @@ app.get(process.env.PROXY_URL + "/protected", checkAuth, (req, res) => {
 
 
 // get user settings
-app.get(process.env.PROXY_URL + "/settings", checkAuth, (req, res) => {
-  res.json({ user: req.user });
+app.get(process.env.PROXY_URL + "/settings", checkAuth, async (req, res) => {
+  try {
+    let user = await User.findOne({ where: { uuid: req.user.uuid }});
+    res.json(user.toJSON());
+  } catch (err) {
+    res.json(err);
+  }
 });
 
 
-// set user settings
+// set username
 app.post(process.env.PROXY_URL + "/settings", checkAuth, async (req, res) => {
   let user = await req.user.update({ username: req.body.username });
   res.json({ user: user.toJSON() });
