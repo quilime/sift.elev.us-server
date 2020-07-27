@@ -319,6 +319,23 @@ app.post(process.env.PROXY_URL + "/images/:uuid", checkAuth, async (req, res) =>
 
 
 
+// delete an image
+app.post(process.env.PROXY_URL + "/images/:uuid/delete", checkAuth, async (req, res) => {
+  console.log('delete images-----');
+  try {
+    const imageUUID = req.body.uuid;
+    const userUUID = req.user.uuid;
+    const image = await Image.findOne({ where: { uuid: imageUUID, uploader: userUUID }});
+    if (!image) throw "Image not found, or not authorized to delete.";
+    const deleted = await image.destroy();
+    res.json({ image: image, deleted: deleted });
+  } catch(err) {
+    res.json(err);
+  }
+});
+
+
+
 // get images by uploader
 app.get(process.env.PROXY_URL + "/images/uploadedby/:username", checkAuth, async (req, res) => {
   try {
