@@ -298,6 +298,27 @@ app.get(process.env.PROXY_URL + "/images/:uuid", checkAuth, async (req, res) => 
 });
 
 
+// update an image
+app.post(process.env.PROXY_URL + "/images/:uuid", checkAuth, async (req, res) => {
+  try {
+    const uuid = req.params.uuid;
+    const description = req.body.description;
+    const image = await Image.findOne({ where: { uuid: uuid }});
+    if (!image) throw "Image not found";
+    const update = await image.update({ description: description });
+    const images = await DB.query("SELECT Images.*, Users.username FROM `Images`, `Users` where Images.uuid='" + uuid + "' AND Images.uploader = Users.uuid LIMIT 1;");
+    if (images[0][0]) {
+      res.json(images[0][0]);
+    } else {
+      throw "Image not found";
+    }
+  } catch(err) {
+    res.json(err);
+  }
+});
+
+
+
 // get images by uploader
 app.get(process.env.PROXY_URL + "/images/uploadedby/:username", checkAuth, async (req, res) => {
   try {
