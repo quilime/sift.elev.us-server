@@ -79,7 +79,7 @@ const User = sequelize.define("User", {
 
 sequelize.authenticate()
   .then(() => console.log('DB Connected'))
-  .then(Image.sync({ alter: true }))
+  .then(Image.sync({ alter: false }))
   .then(User.sync({ alter: false }))
   .catch((err)=> console.error('Unable to connect to the DB', err));
 
