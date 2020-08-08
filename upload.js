@@ -16,10 +16,10 @@ const allowableTypes = {
 
 const FILETYPE_ERROR_STR = 'Must be jpg, png, or gif';
 
-const post = (req, res) => {  
+const post = (req, res) => {
   var form = new IncomingForm();
   let user = req.user;
-  
+
   // parse form
   form.parse(req);
 
@@ -35,7 +35,7 @@ const post = (req, res) => {
     } catch (error) {
       throw new Error(error);
     }
-  });  
+  });
 
   // check type
   const checkType = (file) => new Promise(function(resolve, reject) {
@@ -49,16 +49,16 @@ const post = (req, res) => {
 
   // handle each file from form
   form.on('file', (field, file) => {
-    
+
     fileData = {...file};
 
     // check file type
     checkType(fileData)
-    
+
     // parse image info
     .then(parseEXIF(fileData.path))
     .then(function(exifData) {
-      fileData.exif = exifData;  
+      fileData.exif = exifData;
       fileData.dims = sizeOf(fileData.path);
       return fileData;
     })
@@ -85,7 +85,7 @@ const post = (req, res) => {
           fileData.href = i;
           fs.copyFileSync(fileData.path, fileData.localPath + '/' + fileData.localName, (err) => { if (err) throw error; });
           return fileData;
-        } 
+        }
 
         // if not, create new destination folder
         else {
@@ -114,7 +114,7 @@ const post = (req, res) => {
       return newImage.save()
         .then((im) => {
           console.log('Successfuly inserted into DB: ', im.toJSON());
-          return fileData;
+          return im.toJSON();
         })
         .catch((err) => {
           console.log('Error inserting into DB', err);
@@ -128,7 +128,7 @@ const post = (req, res) => {
       res.json(fileData);
     })
 
-    // catch all errors  
+    // catch all errors
     .catch(function(err) {
       console.log('Upload Error');
       console.log(err);

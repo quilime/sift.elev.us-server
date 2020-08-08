@@ -35,20 +35,6 @@ const generatePassword = () => {
 };
 
 
-// mail transport
-const sendPasswordViaEmail = (user) => {
-  return mailTransport.sendMail({
-    from: process.env.FROM_EMAIL,
-    to: user.email,
-    subject: "Your Login Code 🔑",
-    // plain text email body
-    text: "Your single-use login code\n\n" + user.password,
-    // html email body
-    html: "Your single-use login code<br /><br /><strong style='font-size:2em;'>" + user.password + "</strong>",
-  });
-};
-
-
 // JWT auth strategy for passport
 const jwtOpts = {
   jwtFromRequest: (req) => {
@@ -150,7 +136,15 @@ app.post(process.env.PROXY_URL + "/register", async (req, res) => {
       if (process.env.SEND_EMAIL == 0) {
         console.log("Email-send disabled.");
       } else {
-        let mailResponse = await sendPasswordViaEmail(user);
+        let mailResponse = await mailTransport.sendMail({
+          from: process.env.FROM_EMAIL,
+          to: user.email,
+          subject: "Your Login Code 🔑",
+          // plain text email body
+          text: "Your single-use login code\n\n" + user.password,
+          // html email body
+          html: "Your single-use login code<br /><br /><strong style='font-size:2em;'>" + user.password + "</strong>",
+        });
         console.log('mailResponse', mailResponse);
       }
 
@@ -276,7 +270,7 @@ app.get(process.env.PROXY_URL + "/users", checkAuth, (req, res) => {
 
 
 // get all images
-app.get(process.env.PROXY_URL + "/images", checkAuth, async (req, res) => {
+app.get(process.env.PROXY_URL + "/images", async (req, res) => {
   try {
     let images = await DB.query("SELECT Images.*, Users.username FROM `Images`, `Users` where Images.uploader = Users.uuid;");
     res.json(images[0].reverse());
@@ -287,7 +281,7 @@ app.get(process.env.PROXY_URL + "/images", checkAuth, async (req, res) => {
 
 
 // get an image
-app.get(process.env.PROXY_URL + "/images/:uuid", checkAuth, async (req, res) => {
+app.get(process.env.PROXY_URL + "/images/:uuid", async (req, res) => {
   try {
     const uuid = req.params.uuid;
     // Image.findOne({ where: { uuid: req.params.uuid }}).then(image => res.json(image));
@@ -323,7 +317,6 @@ app.post(process.env.PROXY_URL + "/images/:uuid", checkAuth, async (req, res) =>
 });
 
 
-
 // delete an image
 app.post(process.env.PROXY_URL + "/images/:uuid/delete", checkAuth, async (req, res) => {
   console.log('delete images-----');
@@ -338,7 +331,6 @@ app.post(process.env.PROXY_URL + "/images/:uuid/delete", checkAuth, async (req, 
     res.json(err);
   }
 });
-
 
 
 // get images by uploader
