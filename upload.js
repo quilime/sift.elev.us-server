@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const shortid = require('shortid');
-const IncomingForm = require('formidable').IncomingForm
+const IncomingForm = require('formidable').IncomingForm;
 const ExifImage = require('exif').ExifImage;
 var sizeOf = require('image-size');
 const { Image } = require('./models');

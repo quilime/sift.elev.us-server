@@ -12,7 +12,7 @@ const { createTransport } = require("nodemailer");
 const { v4: uuidv4 } = require("uuid");
 
 const upload = require('./upload');
-const { DB, User, Image } = require('./models');
+const { DB, User, Image, Mark } = require('./models');
 
 const morgan = require('morgan')('combined');
 
@@ -285,9 +285,23 @@ app.get(process.env.PROXY_URL + "/images/:uuid", async (req, res) => {
   try {
     const uuid = req.params.uuid;
     // Image.findOne({ where: { uuid: req.params.uuid }}).then(image => res.json(image));
-    let images = await DB.query("SELECT Images.*, Users.username FROM `Images`, `Users` where Images.uuid='" + uuid + "' AND Images.uploader = Users.uuid LIMIT 1;");
+    let images = await DB.query("SELECT Images.*, Users.username FROM `Images`, `Users`, `Marks` WHERE Images.uuid='" + uuid + "' AND Images.uploader = Users.uuid LIMIT 1;");
     if (images[0][0]) {
-      res.json(images[0][0]);
+      const image = images[0][0];
+
+      // all marks
+      // SELECT `Marks`.*, Users.username FROM `Marks`, `Users` WHERE `Marks`.user = `Users`.uuid
+      // SELECT * FROM `Marks` WHERE image = '4f74119a-f9fe-4d3c-af0e-08417448406c';
+      // "SELECT Users.username FROM Marks, Users, Images WHERE Marks.image = Images.uuid AND Marks.user = Users.uuid AND Marks.image = '" + image.uuid + "'"
+
+      
+
+      // let usersWhoMarked = await DB.query("SELECT Users.username FROM Marks LEFT JOIN Users ON Marks.user = Users.uuid WHERE Marks.image = '" + image.uuid + "'");
+      // // console.log('yaaa', usersWhoMarked);
+      // // console.log('--');
+      // image.markedBy = usersWhoMarked;
+      
+      res.json(image);
     } else {
       throw "Image not found";
     }
@@ -317,6 +331,17 @@ app.post(process.env.PROXY_URL + "/images/:uuid", checkAuth, async (req, res) =>
 });
 
 
+// get image marks
+app.get(process.env.PROXY_URL + "/images/:uuid/marks", async (req, res) => {
+  let marks = await DB.query("SELECT Users.username FROM Marks LEFT JOIN Users ON Marks.user = Users.uuid WHERE Marks.image = '" + req.params.uuid + "' ");
+  let usernamesWhoMarked = [];
+  usernamesWhoMarked = marks[0].map((e) => {
+    return e.username;
+  });
+  res.json(usernamesWhoMarked);
+});
+
+
 // delete an image
 app.post(process.env.PROXY_URL + "/images/:uuid/delete", checkAuth, async (req, res) => {
   console.log('delete images-----');
@@ -333,16 +358,92 @@ app.post(process.env.PROXY_URL + "/images/:uuid/delete", checkAuth, async (req, 
 });
 
 
-// get images by uploader
-app.get(process.env.PROXY_URL + "/images/uploadedby/:username", checkAuth, async (req, res) => {
+/*
+SELECT Images.*
+FROM Images, Users 
+WHERE Images.uploader = Users.uuid 
+	AND Images.uploader = '99e0c731-aa82-4f4b-84da-db4628f3545f'
+
+UNION
+
+SELECT Images.*
+FROM Marks
+LEFT JOIN Images on Images.uuid = Marks.image
+WHERE user = '99e0c731-aa82-4f4b-84da-db4628f3545f'
+
+ORDER BY createdAt DESC
+*/
+
+// get images for user (including marks)
+app.get(process.env.PROXY_URL + "/images/for/:username", checkAuth, async (req, res) => {
   try {
     let user = await User.findOne({ where: { username: req.params.username }});
-    let images = await DB.query("SELECT Images.*, Users.username FROM `Images`, `Users` where Images.uploader = Users.uuid AND Images.uploader = '"+user.uuid+"';");
+    let q = `
+      SELECT Images.*, Users.username
+      FROM Images 
+      LEFT JOIN Users on Images.uploader = Users.uuid
+      WHERE Images.uploader = '${user.uuid}'
+      
+      UNION
+      
+      SELECT Images.*, Users.username
+      FROM Marks
+      LEFT JOIN Images on Images.uuid = Marks.image
+      LEFT JOIN Users on Images.uploader = Users.uuid
+      WHERE user = '${user.uuid}'  
+      
+      ORDER BY createdAt     
+    `;
+    //"SELECT Images.*, Users.username FROM `Images`, `Users` where Images.uploader = Users.uuid AND Images.uploader = '"+user.uuid+"';"
+    let images = await DB.query(q);
     res.json(images[0].reverse());
   } catch(err) {
     res.json(err);
   }
 });
+
+
+// mark image
+app.post(process.env.PROXY_URL + "/mark", checkAuth, async (req, res) => {
+
+  let existingMark = await Mark.findOne({ where: { 
+    user: req.body.userUUID,
+    image: req.body.imageUUID
+  }});
+
+  if (existingMark) {
+    const deleted = await existingMark.destroy();
+    res.json({ 
+      marked: false
+     });    
+  } else {
+
+    const newMark = Mark.build({
+      user: req.body.userUUID,
+      image: req.body.imageUUID,
+      uuid: uuidv4()
+    });
+  
+    newMark.save()
+      .then((mark) => {
+        console.log('Successfuly inserted into DB: ', mark.toJSON());
+        res.json({
+          marked: true,
+          mark: mark.toJSON()
+        });
+      })
+      .catch((err) => {
+        console.log('Error inserting into DB', err);
+        throw new Error(err);
+      });
+  }
+
+});
+
+
+
+
+
 
 
 // start app

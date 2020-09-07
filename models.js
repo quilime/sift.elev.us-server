@@ -77,15 +77,34 @@ const User = sequelize.define("User", {
 });
 
 
+const Mark = sequelize.define("Mark", {
+  uuid: {
+    type: DataTypes.UUID,
+    allowNull: false,
+    unique: true,
+  },
+  user: {
+    type: DataTypes.UUID,
+    allowNull: false,
+  },
+  image: {
+    type: DataTypes.UUID,
+    allowNull: false,
+  },  
+});
+
+
 sequelize.authenticate()
   .then(() => console.log('DB Connected'))
   .then(Image.sync({ alter: false }))
   .then(User.sync({ alter: false }))
+  .then(Mark.sync({ alter: false }))
   .catch((err)=> console.error('Unable to connect to the DB', err));
 
 
 module.exports = {
   DB: sequelize,
   User: User,
-  Image: Image
-}
+  Image: Image,
+  Mark: Mark
+};
