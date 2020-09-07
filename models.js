@@ -98,7 +98,7 @@ sequelize.authenticate()
   .then(() => console.log('DB Connected'))
   .then(Image.sync({ alter: false }))
   .then(User.sync({ alter: false }))
-  .then(Mark.sync({ alter: true }))
+  .then(Mark.sync({ alter: false }))
   .catch((err)=> console.error('Unable to connect to the DB', err));
 
 
